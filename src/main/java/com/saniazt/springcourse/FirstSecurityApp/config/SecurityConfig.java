@@ -23,7 +23,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Override //конфигурируем сам SS и конфигурируем авторизацию
     protected void configure(HttpSecurity httpSecurity) throws Exception{
-        httpSecurity.csrf().disable()
+        httpSecurity
                 .authorizeHttpRequests() //настройка авторизации
                 .antMatchers("/auth/login","/auth/registration","/error").permitAll()//настройка авторизации
                 .anyRequest().authenticated()//настройка авторизации
