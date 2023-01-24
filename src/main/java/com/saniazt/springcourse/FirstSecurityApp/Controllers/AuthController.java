@@ -1,6 +1,7 @@
 package com.saniazt.springcourse.FirstSecurityApp.Controllers;
 
 
+import com.saniazt.springcourse.FirstSecurityApp.dto.AuthenticationDTO;
 import com.saniazt.springcourse.FirstSecurityApp.dto.PersonDTO;
 import com.saniazt.springcourse.FirstSecurityApp.models.Person;
 import com.saniazt.springcourse.FirstSecurityApp.security.JWTUtil;
@@ -8,6 +9,9 @@ import com.saniazt.springcourse.FirstSecurityApp.services.RegistrationService;
 import com.saniazt.springcourse.FirstSecurityApp.util.PersonValidator;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,13 +26,15 @@ public class AuthController {
     private final RegistrationService registrationService;
     private final JWTUtil jwtUtil;
     private final ModelMapper modelMapper;
+    private final AuthenticationManager authenticationManager;
 
     @Autowired
-    public AuthController(PersonValidator personValidator, RegistrationService registrationService, JWTUtil jwtUtil, ModelMapper modelMapper) {
+    public AuthController(PersonValidator personValidator, RegistrationService registrationService, JWTUtil jwtUtil, ModelMapper modelMapper, AuthenticationManager authenticationManager) {
         this.personValidator = personValidator;
         this.registrationService = registrationService;
         this.jwtUtil = jwtUtil;
         this.modelMapper = modelMapper;
+        this.authenticationManager = authenticationManager;
     }
 
     @GetMapping("/login")
@@ -52,7 +58,22 @@ public class AuthController {
 
         registrationService.register(person);
 
-        return "redirect:/auth/login";
+        String token = jwtUtil.generateToken(person.getUsername());
+        return Map.of("jwt-token",token);
+    }
+
+    @PostMapping("/login")
+    public Map<String,String> performLogin(@RequestBody AuthenticationDTO authenticationDTO){
+        UsernamePasswordAuthenticationToken authenticationToken =
+                new UsernamePasswordAuthenticationToken(authenticationDTO.getUsername(),
+                        authenticationDTO.getPassword());
+        try {
+            authenticationManager.authenticate(authenticationToken);
+        } catch (BadCredentialsException e){
+           return Map.of("message","Incorrect credential");
+        }
+        String token =jwtUtil.generateToken(authenticationDTO.getUsername());
+        return Map.of("jwt-token",token);
     }
 
     public Person convertToPerson(PersonDTO personDTO){
